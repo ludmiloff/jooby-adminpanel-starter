@@ -2,6 +2,11 @@
 
 A [Jooby](http://jooby.org) starter project featuring Pac4j, Pebble and JDBI3
 
+## run
+```
+mvn jooby:run
+```
+
 ## help
 
 * Read the [jooby](http://jooby.org/doc/) documentation
