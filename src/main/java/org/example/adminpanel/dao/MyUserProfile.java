@@ -201,23 +201,111 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package org.example.adminpanel.models;
+package org.example.adminpanel.dao;
 
+import org.example.adminpanel.App;
+import org.jdbi.v3.core.mapper.RowMapper;
+import org.jdbi.v3.core.statement.StatementContext;
 import org.pac4j.core.context.Pac4jConstants;
 import org.pac4j.core.profile.CommonProfile;
+
+
+import java.io.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Base64;
 
 
 public class MyUserProfile extends CommonProfile {
 
     private static final long serialVersionUID = 2559067845921414574L;
 
+    public static class Mapper implements RowMapper<MyUserProfile> {
+        @Override
+        public MyUserProfile map(ResultSet rs, StatementContext ctx) throws SQLException {
+            MyUserProfile profile = new MyUserProfile();
+            profile.setId(Integer.toString(rs.getInt("id")));
+            profile.addAttribute(Pac4jConstants.USERNAME, rs.getString("username"));
+            profile.addAttribute(Pac4jConstants.PASSWORD, rs.getString("password"));
+            profile.setSerializedProfile(rs.getString("serializedprofile"));
+            return profile;
+        }
+    }
+
+    private String serializedProfile = null;
+
     public MyUserProfile() { }
 
     public MyUserProfile(String emailAsUsername, String role) {
         super();
         addAttribute(Pac4jConstants.USERNAME, emailAsUsername);
+        // email is also used as username
         addAttribute("email", emailAsUsername);
         addRole(role);
+    }
+
+    public String getPassword() {
+        return (String) getAttribute(Pac4jConstants.PASSWORD);
+    }
+
+    public String getSerializedProfile() {
+        return serializedProfile;
+    }
+
+    public void setSerializedProfile(String serializedProfile) {
+        this.serializedProfile = serializedProfile;
+    }
+
+    public boolean unserializeProfile() {
+        if (serializedProfile == null) {
+            return false;
+        }
+
+        ByteArrayInputStream stream = new ByteArrayInputStream(Base64.getDecoder().decode(serializedProfile));
+        ObjectInput in = null;
+        try {
+            // FIXME: for some reason id is not recognized by pac4j after deserialization
+            String oldId = getId();
+            in = new ObjectInputStream(stream);
+            readExternal(in);
+            setId(oldId);
+            return true;
+
+        } catch (IOException | ClassNotFoundException e) {
+            App.log.info(e.getMessage());
+            return false;
+
+        } finally {
+            try {
+                if (in != null) {
+                    in.close();
+                }
+            } catch (IOException ex) {
+                // ignore close exception
+            }
+        }
+    }
+
+    public String serializeProfile() {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        ObjectOutput out = null;
+        try {
+            out = new ObjectOutputStream(stream);
+            writeExternal(out);
+            out.flush();
+            serializedProfile = Base64.getEncoder().encodeToString(stream.toByteArray());
+            return serializedProfile;
+
+        } catch (IOException e) {
+            return "";
+
+        } finally {
+            try {
+                stream.close();
+            } catch (IOException e) {
+                // ignore close exception
+            }
+        }
     }
 
 }

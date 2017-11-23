@@ -62,6 +62,12 @@
       <version>1.2.3</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.jdbi</groupId>
+      <artifactId>jdbi3-sqlobject</artifactId>
+      <version>${jdbi3.version}</version>
+    </dependency>
+
     <!-- Pac4j -->
     <dependency>
       <groupId>org.jooby</groupId>
