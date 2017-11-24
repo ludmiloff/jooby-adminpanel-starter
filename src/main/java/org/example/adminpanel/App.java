@@ -255,7 +255,6 @@ public class App extends Jooby {
         );
 
 
-        //bind(UserDao.class, new UserDao());
 
         onStart(() -> {
             Env env = require(Env.class);
@@ -274,8 +273,6 @@ public class App extends Jooby {
                     String salt = conf.getString("password_salt");
                     String password = conf.getString("admin_password");
                     PasswordEncoder passwordEncoder = new BasicSaltedSha512PasswordEncoder(salt);
-
-                    admin.serializeProfile();
 
                     dao.create(admin.getUsername(), passwordEncoder.encode(password), admin.getSerializedProfile());
                 });

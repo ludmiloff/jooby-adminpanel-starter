@@ -260,7 +260,7 @@ public class DbAuthenticator implements Authenticator<UsernamePasswordCredential
                 throwsException("Invalid username or password");
             }
 
-            final String userPassword = (String) profile.getPassword();
+            final String userPassword = profile.getPassword();
             //App.log.info("USER PASSWORD: " + userPassword);
 
             if (CommonHelper.areNotEquals(userPassword, expectedPassword)) {
@@ -268,7 +268,7 @@ public class DbAuthenticator implements Authenticator<UsernamePasswordCredential
             }
             //App.log.info("PASSWORD MATCH");
 
-            if (!profile.unserializeProfile()) {
+            if (!profile.isUnserializationSuccessful()) {
                 throwsException("User profile corrupted or missing");
             }
 

@@ -224,17 +224,20 @@ public class MyUserProfile extends CommonProfile {
         @Override
         public MyUserProfile map(ResultSet rs, StatementContext ctx) throws SQLException {
             MyUserProfile profile = new MyUserProfile();
+            profile.unserializeProfile(rs.getString("serializedprofile"));
             profile.setId(Integer.toString(rs.getInt("id")));
-            profile.addAttribute(Pac4jConstants.USERNAME, rs.getString("username"));
-            profile.addAttribute(Pac4jConstants.PASSWORD, rs.getString("password"));
-            profile.setSerializedProfile(rs.getString("serializedprofile"));
+            profile.setPassword(rs.getString("password"));
             return profile;
         }
     }
 
-    private String serializedProfile = null;
+    private boolean unserializationSuccessful;
 
-    public MyUserProfile() { }
+    private String encodedPassword;
+
+    public MyUserProfile() {
+        unserializationSuccessful = true;
+    }
 
     public MyUserProfile(String emailAsUsername, String role) {
         super();
@@ -242,59 +245,30 @@ public class MyUserProfile extends CommonProfile {
         // email is also used as username
         addAttribute("email", emailAsUsername);
         addRole(role);
+        unserializationSuccessful = true;
+    }
+
+    public boolean isUnserializationSuccessful() {
+        return unserializationSuccessful;
     }
 
     public String getPassword() {
-        return (String) getAttribute(Pac4jConstants.PASSWORD);
+        return encodedPassword;
+        //return (String) getAttribute(Pac4jConstants.PASSWORD);
+    }
+
+    public void setPassword(String encodedPassword) {
+        this.encodedPassword = encodedPassword;
     }
 
     public String getSerializedProfile() {
-        return serializedProfile;
-    }
-
-    public void setSerializedProfile(String serializedProfile) {
-        this.serializedProfile = serializedProfile;
-    }
-
-    public boolean unserializeProfile() {
-        if (serializedProfile == null) {
-            return false;
-        }
-
-        ByteArrayInputStream stream = new ByteArrayInputStream(Base64.getDecoder().decode(serializedProfile));
-        ObjectInput in = null;
-        try {
-            // FIXME: for some reason id is not recognized by pac4j after deserialization
-            String oldId = getId();
-            in = new ObjectInputStream(stream);
-            readExternal(in);
-            setId(oldId);
-            return true;
-
-        } catch (IOException | ClassNotFoundException e) {
-            App.log.info(e.getMessage());
-            return false;
-
-        } finally {
-            try {
-                if (in != null) {
-                    in.close();
-                }
-            } catch (IOException ex) {
-                // ignore close exception
-            }
-        }
-    }
-
-    public String serializeProfile() {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         ObjectOutput out = null;
         try {
             out = new ObjectOutputStream(stream);
             writeExternal(out);
             out.flush();
-            serializedProfile = Base64.getEncoder().encodeToString(stream.toByteArray());
-            return serializedProfile;
+            return Base64.getEncoder().encodeToString(stream.toByteArray());
 
         } catch (IOException e) {
             return "";
@@ -303,6 +277,34 @@ public class MyUserProfile extends CommonProfile {
             try {
                 stream.close();
             } catch (IOException e) {
+                // ignore close exception
+            }
+        }
+    }
+
+
+    void unserializeProfile(String encoded) {
+        if (encoded == null) {
+            unserializationSuccessful = false;
+        }
+
+        ByteArrayInputStream stream = new ByteArrayInputStream(Base64.getDecoder().decode(encoded));
+        ObjectInput in = null;
+        try {
+            in = new ObjectInputStream(stream);
+            readExternal(in);
+            unserializationSuccessful = true;
+
+        } catch (IOException | ClassNotFoundException e) {
+            App.log.info(e.getMessage());
+            unserializationSuccessful = false;
+
+        } finally {
+            try {
+                if (in != null) {
+                    in.close();
+                }
+            } catch (IOException ex) {
                 // ignore close exception
             }
         }
